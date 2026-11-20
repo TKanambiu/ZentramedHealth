@@ -2,13 +2,13 @@ import { OptimizedImage } from "@/components/optimized-image";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Session } from "@supabase/supabase-js";
 import { ShieldCheck, LoaderCircle, LogOut, Plus, Trash2, Save, Upload, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { CATEGORIES, allProducts, formatKES } from "@/data/catalogue";
 import { fetchDbProducts, productsQueryKey, type DbProduct } from "@/lib/live-catalogue";
+import { ADMIN_BOOTSTRAP_EMAIL, isAdminBootstrapEmail } from "@/lib/admin-access";
 
 export const Route = createFileRoute("/admin")({
   ssr: false,
@@ -27,20 +27,46 @@ export const Route = createFileRoute("/admin")({
 const db = supabase as any;
 
 function AdminPage() {
-  const [session, setSession] = useState<Session | null>(null);
+  const [account, setAccount] = useState<{ id: string; email: string } | null>(null);
   const [checking, setChecking] = useState(true);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [accessError, setAccessError] = useState("");
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, next) => { setSession(next); setChecking(false); });
-    supabase.auth.getSession().then(({ data }) => { setSession(data.session); setChecking(false); });
-    return () => subscription.unsubscribe();
+    let active = true;
+    const verifyAccess = async () => {
+      setChecking(true);
+      setAccessError("");
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (!active) return;
+      if (userError || !user) {
+        setAccount(null);
+        setIsAdmin(null);
+        setChecking(false);
+        return;
+      }
+
+      setAccount({ id: user.id, email: user.email ?? "" });
+      const { data: role, error: roleError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (!active) return;
+      setIsAdmin(role?.role === "admin");
+      setAccessError(roleError ? "Administrator access could not be verified. Please try again." : "");
+      setChecking(false);
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+      setChecking(true);
+      setTimeout(() => { if (active) void verifyAccess(); }, 0);
+    });
+    void verifyAccess();
+    return () => { active = false; subscription.unsubscribe(); };
   }, []);
-
-  useEffect(() => {
-    if (!session) { setIsAdmin(null); return; }
-    db.rpc("claim_first_admin").then(({ data }: { data: boolean }) => setIsAdmin(!!data));
-  }, [session?.user.id]);
 
   return (
     <main className="admin-theme min-h-screen bg-admin-background px-4 py-10 text-admin-foreground">
@@ -49,9 +75,13 @@ function AdminPage() {
         <p className="mt-3 font-mono text-[10px] uppercase text-admin-muted">Operations Console</p>
       </div>
       <div className="mt-8">
-        {checking ? <Spinner /> : !session ? <SignIn /> : isAdmin === null ? <Spinner /> : !isAdmin ? (
-          <Card><p className="text-sm">Signed in as {session.user.email}, but this account is not an admin.</p><SignOutButton /></Card>
-        ) : <Manager email={session.user.email ?? ""} />}
+        {checking ? <Spinner /> : !account ? <SignIn /> : isAdmin === null ? <Spinner /> : !isAdmin ? (
+          <Card>
+            <p className="text-sm">Signed in as {account.email}, but this account is not an administrator.</p>
+            {accessError && <p role="alert" className="text-sm text-destructive">{accessError}</p>}
+            <SignOutButton />
+          </Card>
+        ) : <Manager email={account.email} />}
       </div>
       <div className="mt-8 text-center font-mono text-[10px] uppercase text-admin-muted"><Link to="/" className="hover:text-admin-accent">Return to website</Link></div>
     </main>
@@ -69,23 +99,31 @@ function SignOutButton() {
 
 function SignIn() {
   const [mode, setMode] = useState<"in" | "up">("in");
-  const [email, setEmail] = useState(""); const [password, setPassword] = useState("");
+  const [email, setEmail] = useState(ADMIN_BOOTSTRAP_EMAIL); const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false); const [msg, setMsg] = useState("");
   async function submit(e: FormEvent) {
     e.preventDefault(); setBusy(true); setMsg("");
     const creds = { email: email.trim().toLowerCase(), password };
-    const { data, error } = mode === "in" ? await supabase.auth.signInWithPassword(creds) : await supabase.auth.signUp({ ...creds, options: { emailRedirectTo: `${window.location.origin}/admin` } });
-    if (error) setMsg(error.message); else if (mode === "up" && !data.session) setMsg("Account created. Check your email to confirm, then sign in.");
+    if (mode === "up" && !isAdminBootstrapEmail(creds.email)) {
+      setMsg("Only the designated administrator email can be used to create the first admin account.");
+      setBusy(false);
+      return;
+    }
+    const { data, error } = mode === "in"
+      ? await supabase.auth.signInWithPassword(creds)
+      : await supabase.auth.signUp({ ...creds, options: { emailRedirectTo: `${window.location.origin}/admin` } });
+    if (error) setMsg(error.message);
+    else if (mode === "up" && !data.session) setMsg("Account created. Check your email to confirm, then sign in.");
     setBusy(false);
   }
   return (
     <form onSubmit={submit}><Card>
-      <div className="flex items-center justify-between"><h2 className="text-lg font-semibold">{mode === "in" ? "Sign in to continue" : "Create staff account"}</h2><ShieldCheck className="h-6 w-6 text-admin-accent" /></div>
+      <div className="flex items-center justify-between"><h2 className="text-lg font-semibold">{mode === "in" ? "Administrator sign in" : "Create admin account"}</h2><ShieldCheck className="h-6 w-6 text-admin-accent" /></div>
       <Input type="email" required placeholder="Work email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className={field} />
       <Input type="password" required minLength={6} placeholder="Password" autoComplete={mode === "in" ? "current-password" : "new-password"} value={password} onChange={(e) => setPassword(e.target.value)} className={field} />
       {msg && <p role="alert" className="text-sm text-destructive">{msg}</p>}
       <Button type="submit" disabled={busy} className="w-full bg-admin-foreground text-admin-background hover:bg-admin-accent">{busy && <LoaderCircle className="animate-spin" />}{mode === "in" ? "Sign in" : "Create account"}</Button>
-      <button type="button" onClick={() => setMode(mode === "in" ? "up" : "in")} className="w-full text-xs text-admin-muted hover:text-admin-accent">{mode === "in" ? "First time? Create the admin account" : "Have an account? Sign in"}</button>
+      <button type="button" onClick={() => { setMode(mode === "in" ? "up" : "in"); setMsg(""); }} className="w-full text-xs text-admin-muted hover:text-admin-accent">{mode === "in" ? "First time? Create the admin account" : "Have an account? Sign in"}</button>
     </Card></form>
   );
 }
