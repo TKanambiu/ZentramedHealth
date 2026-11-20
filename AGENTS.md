@@ -9,6 +9,8 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 
+Admin access uses a one-time, confirmed-email first-admin claim while product changes remain protected by Supabase row-level policies, preventing public self-assignment.
+
 - Keep homepage slide content in a browser-safe data module shared with image preloading so photography and preload references stay aligned.
 - Keep supplied homepage hero photography in `public/NewHeros` and reference those committed files directly so static deployments remain self-contained.
 - Reference partner logos directly from committed `public/icons` files and site photos from committed public files so cPanel deployments do not depend on Lovable asset serving.

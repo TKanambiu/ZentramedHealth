@@ -25,3 +25,4 @@
 - [x] Remove green hero letterboxing and size the desktop frame to the supplied photo proportions.
 
 - [x] Add the Tyvek Cleanroom Safety Showcase hero slide with coveralls copy.
+- [ ] Finish the sign-in-only admin setup, grant first-admin access only to a confirmed account, and verify product editing.
