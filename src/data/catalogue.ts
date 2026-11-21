@@ -478,15 +478,17 @@ const RAW_CATEGORIES: Omit<Category, "image">[] = [
 
 export const CATEGORIES: Category[] = RAW_CATEGORIES.map((c) => ({ ...c, image: IMG[c.slug] }));
 
+const ENQUIRIES_PHONE = "+254 759 228 552";
+
 export const COMPANY = {
   name: "Zentramed Health",
   tagline: "Advancing Healthcare and Humanitarian Solutions",
-  address: "Bazaar Plaza, Nairobi, Kenya",
-  phones: ["+254 722 708 420", "+254 759 228 552"],
+  address: "Bazaar Plaza, Moi Avenue, 9th Floor, Suite A901, Nairobi CBD, Kenya",
+  phones: [ENQUIRIES_PHONE],
   email: "info@zentramedhealth.co.ke",
   website: "www.zentramedhealth.co.ke",
   social: "@zentramedhealth",
-  whatsapp: "254722708420",
+  whatsapp: ENQUIRIES_PHONE.replace(/\D/g, ""),
 };
 
 export function formatKES(n: number) {
