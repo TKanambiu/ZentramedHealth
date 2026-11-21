@@ -229,15 +229,29 @@ function NewProduct({ cat, subs, onDone }: { cat: string; subs: string[]; onDone
   const empty = { name: "", subcategory: subs[0] ?? "", price: 0, reseller: null as number | null, image_url: null as string | null };
   const [v, setV] = useState(empty);
   const [busy, setBusy] = useState(false);
-  useEffect(() => setV({ ...empty, subcategory: subs[0] ?? "" }), [cat]);
+  const [bundledImage, setBundledImage] = useState("");
+  const bundledPath = bundledImage.trim();
+  const validPath = /^\/catalogue-[a-z0-9]+(?:-[a-z0-9]+)*\.webp$/.test(bundledPath);
+  useEffect(() => { setV({ ...empty, subcategory: subs[0] ?? "" }); setBundledImage(""); }, [cat]);
   async function add(e: FormEvent) {
-    e.preventDefault(); setBusy(true);
-    const { error } = await db.from("products").insert({ ...v, category_slug: cat, sort_order: Date.now() % 1e9 });
-    setBusy(false); if (error) alert(error.message); else { setV({ ...empty, subcategory: v.subcategory }); onDone(); }
+    e.preventDefault();
+    if (bundledPath && !validPath) { alert("Use a bundled catalogue image path."); return; }
+    setBusy(true);
+    const { error } = await db.from("products").insert({ ...v, image_url: bundledPath || v.image_url, category_slug: cat, sort_order: Date.now() % 1e9 });
+    setBusy(false); if (error) alert(error.message); else { setV({ ...empty, subcategory: v.subcategory }); setBundledImage(""); onDone(); }
   }
   return (
     <form onSubmit={add} className="flex flex-wrap items-end gap-3 rounded-lg border border-dashed border-admin-accent bg-admin-surface p-3">
-      <PhotoPicker url={v.image_url} onChange={(u) => setV({ ...v, image_url: u })} />
+      <PhotoPicker url={validPath ? bundledPath : v.image_url} onChange={(u) => { setV({ ...v, image_url: u }); setBundledImage(""); }} />
+      <label className="min-w-[175px] text-xs text-admin-muted">
+        Bundled catalogue image (optional)
+        <Input
+          placeholder="/catalogue-product-name.webp"
+          value={bundledImage}
+          onChange={(e) => setBundledImage(e.target.value)}
+          className={field}
+        />
+      </label>
       <label className="min-w-[180px] flex-1 text-xs text-admin-muted">New product name<Input required value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} className={field} /></label>
       <label className="text-xs text-admin-muted">Subcategory<Input required list="subs" value={v.subcategory} onChange={(e) => setV({ ...v, subcategory: e.target.value })} className={`${field} w-44`} /><datalist id="subs">{subs.map((s) => <option key={s} value={s} />)}</datalist></label>
       <label className="text-xs text-admin-muted">Price (KES)<Input type="number" min={0} required value={v.price} onChange={(e) => setV({ ...v, price: Number(e.target.value) })} className={`${field} w-28`} /></label>
