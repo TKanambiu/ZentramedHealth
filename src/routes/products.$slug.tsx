@@ -140,17 +140,18 @@ function CategoryPage() {
                         className="group flex flex-col overflow-hidden rounded-xl border border-border bg-background transition hover:-translate-y-1 hover:border-brand hover:shadow-[var(--shadow-card)]"
                       >
                         <div className={`relative aspect-[4/3] overflow-hidden ${prod.image ? "bg-white p-4" : "bg-muted"}`}>
-                          <OptimizedImage
-                            src={prod.image ?? category.image}
-                            sizes="(min-width: 1024px) 30vw, (min-width: 640px) 50vw, 100vw"
-                            alt={prod.name}
-                            loading="lazy"
-                            width={800}
-                            height={600}
-                            className={`h-full w-full transition duration-500 group-hover:scale-105 ${prod.image ? "object-contain" : "object-cover brightness-110"}`}
-                          />
-                          {!prod.image && (
-                            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/35 to-transparent" />
+                          {prod.image ? (
+                            <OptimizedImage
+                              src={prod.image}
+                              sizes="(min-width: 1024px) 30vw, (min-width: 640px) 50vw, 100vw"
+                              alt={prod.name}
+                              loading="lazy"
+                              width={800}
+                              height={600}
+                              className="h-full w-full object-contain transition duration-500 group-hover:scale-105"
+                            />
+                          ) : (
+                            <div className="grid h-full place-items-center text-xs text-muted-foreground">Product photo not available</div>
                           )}
                           <div className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-brand shadow">
                             {sub.name}
