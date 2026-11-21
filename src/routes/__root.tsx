@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useLocation,
   HeadContent,
   Scripts,
   type ErrorComponentProps,
@@ -11,6 +12,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import { getCategory } from "../data/catalogue";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 const LOGO_PRELOAD_URL = "/logo-wide.png";
 
@@ -122,6 +124,69 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <MetricoolPageViews />
     </QueryClientProvider>
   );
+}
+
+type MetricoolTracker = { t: (options: { hash: string }) => void };
+const metricoolHash = "addf46679badf048ff38861ca9584b2d";
+let metricoolScript: Promise<MetricoolTracker | undefined> | undefined;
+let lastMetricoolPath: string | undefined;
+
+function isMeasuredPath(pathname: string) {
+  const path = pathname.replace(/\/$/, "") || "/";
+  if (["/", "/about", "/services", "/products", "/featured-products"].includes(path)) return true;
+  const category = /^\/products\/([a-z-]+)$/.exec(path);
+  return !!(category && getCategory(category[1]));
+}
+
+function loadMetricool() {
+  const browser = window as Window & { beTracker?: MetricoolTracker };
+  if (browser.beTracker) return Promise.resolve(browser.beTracker);
+  if (!metricoolScript) {
+    metricoolScript = new Promise<MetricoolTracker | undefined>((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://tracker.metricool.com/resources/be.js";
+      script.async = true;
+      script.referrerPolicy = "no-referrer";
+      script.addEventListener("load", () => resolve(browser.beTracker), { once: true });
+      script.addEventListener("error", () => {
+        script.remove();
+        resolve(undefined);
+      }, { once: true });
+      document.head.appendChild(script);
+    }).then((tracker) => {
+      if (!tracker) metricoolScript = undefined;
+      return tracker;
+    });
+  }
+  return metricoolScript;
+}
+
+function MetricoolPageViews() {
+  const href = useLocation({ select: (location) => location.href });
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    // The vendor tag reads the full URL and referrer. Don't send query strings,
+    // fragments, staff-console URLs, or the contact form to analytics.
+    const ref = document.referrer ? new URL(document.referrer) : undefined;
+    if (!isMeasuredPath(url.pathname) || url.search || url.hash || ref?.search || ref?.hash ||
+        (ref?.origin === url.origin && !isMeasuredPath(ref.pathname))) {
+      lastMetricoolPath = undefined;
+      return;
+    }
+    const path = url.pathname.replace(/\/$/, "") || "/";
+    if (lastMetricoolPath === path) return;
+    let cancelled = false;
+    void loadMetricool().then((tracker) => {
+      if (!tracker || cancelled || window.location.href !== url.href || lastMetricoolPath === path) return;
+      tracker.t({ hash: metricoolHash });
+      lastMetricoolPath = path;
+    }).catch(() => { /* Analytics must not interrupt the storefront. */ });
+    return () => { cancelled = true; };
+  }, [href]);
+
+  return null;
 }
