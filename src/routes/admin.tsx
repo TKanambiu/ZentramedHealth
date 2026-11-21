@@ -172,12 +172,93 @@ function Manager({ email }: { email: string }) {
             </select>
             <Input placeholder="Search all products…" value={search} onChange={(e) => setSearch(e.target.value)} className={`${field} max-w-xs`} />
           </div>
+          <BulkCatalogueImport rows={rows} onDone={refresh} />
           {!search && <NewProduct cat={cat} subs={subs} onDone={refresh} />}
           <div className="space-y-2">{shown.map((r) => <Row key={r.id} row={r} onDone={refresh} />)}</div>
           {shown.length === 0 && <p className="text-sm text-admin-muted">No products here.</p>}
         </>
       )}
     </div>
+  );
+}
+
+const cataloguePhotoPath = /^\/catalogue-[a-z0-9]+(?:-[a-z0-9]+)*\.webp$/;
+
+function BulkCatalogueImport({ rows, onDone }: { rows: DbProduct[]; onDone: () => void }) {
+  type ImportRow = { category_slug: string; subcategory: string; name: string; price: number; image_url: string | null };
+  const [batch, setBatch] = useState<ImportRow[]>([]);
+  const [status, setStatus] = useState("");
+  const [busy, setBusy] = useState(false);
+  const key = (name: string) => name.normalize("NFKC").trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
+  const validCategories = new Set(CATEGORIES.map((c) => c.slug));
+  const pending = () => {
+    const existing = new Set(rows.map((r) => key(r.name)));
+    return batch.filter((r) => !existing.has(key(r.name)));
+  };
+  async function readStock(file: File) {
+    setBatch([]);
+    if (file.size > 256_000) { setStatus("Use a JSON file under 256 KB."); return; }
+    try {
+      const data: unknown = JSON.parse(await file.text());
+      if (!Array.isArray(data) || !data.length || data.length > 250) throw new Error("Provide an array of 1–250 products.");
+      const seen = new Set<string>();
+      const parsed: ImportRow[] = data.map((r: unknown, i) => {
+        if (!r || typeof r !== "object") throw new Error(`Invalid product on row ${i + 1}.`);
+        const { category_slug, subcategory, name, price, image_url } = r as Record<string, unknown>;
+        if (typeof name !== "string" || !key(name) || name.trim().length > 130
+          || typeof subcategory !== "string" || !subcategory.trim() || subcategory.trim().length > 70
+          || typeof category_slug !== "string" || !validCategories.has(category_slug)
+          || typeof price !== "number" || !Number.isFinite(price) || price < 0 || price > 20_000_000
+          || (image_url != null && (typeof image_url !== "string" || !cataloguePhotoPath.test(image_url)))) {
+          throw new Error(`Check the product, category, price or photo on row ${i + 1}.`);
+        }
+        if (seen.has(key(name))) throw new Error(`Duplicate product: ${name}.`);
+        seen.add(key(name));
+        return { category_slug, subcategory: subcategory.trim(), name: name.trim(), price, image_url: typeof image_url === "string" ? image_url : null };
+      });
+      setBatch(parsed);
+      setStatus(`${parsed.length} rows validated. Review before adding.`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Could not read the catalogue file.");
+    }
+  }
+  async function publish() {
+    const next = pending();
+    if (!next.length || busy) return;
+    setBusy(true);
+    try {
+      const latest = await fetchDbProducts();
+      const current = new Set(latest.map((r) => key(r.name)));
+      const start = Math.max(0, ...latest.map((r) => r.sort_order));
+      const unique = next.filter((r) => !current.has(key(r.name)));
+      if (!unique.length) { setBatch([]); setStatus("All selected products already exist."); onDone(); return; }
+      const { error } = await db.from("products").insert(unique.map((r, i) => ({
+        ...r, reseller: null, sort_order: start + i + 1,
+      })));
+      if (error) throw new Error(error.message);
+      setBatch([]);
+      setStatus(`Added ${unique.length} products to the website.`);
+      onDone();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "The catalogue could not be saved. Check the product list before retrying.");
+    } finally { setBusy(false); }
+  }
+  const ready = pending();
+  return (
+    <details className="rounded-lg border border-admin-border bg-admin-surface p-4">
+      <summary className="cursor-pointer font-semibold">Import new catalogue items</summary>
+      <p className="mt-2 text-xs text-admin-muted">Choose a product JSON file. A price of 0 displays as Ask for price. Existing names are skipped.</p>
+      <input type="file" accept=".json,application/json" aria-label="Choose catalogue JSON" disabled={busy} className="my-3 block max-w-full text-sm"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) void readStock(f); e.target.value = ""; }} />
+      <p role="status" className="text-sm">{status}</p>
+      {ready.length > 0 && <>
+        <p className="my-2 text-sm">{ready.length} new products, including {ready.filter((r) => r.price === 0).length} with Ask for price.</p>
+        <ul className="max-h-52 overflow-auto text-xs">{ready.map((r) => <li key={r.name}>{r.name} · {formatKES(r.price)}</li>)}</ul>
+        <Button type="button" disabled={busy} onClick={publish} className="mt-3 bg-admin-foreground text-admin-background hover:bg-admin-accent">
+          Add {ready.length} catalogue products
+        </Button>
+      </>}
+    </details>
   );
 }
 
@@ -231,7 +312,7 @@ function NewProduct({ cat, subs, onDone }: { cat: string; subs: string[]; onDone
   const [busy, setBusy] = useState(false);
   const [bundledImage, setBundledImage] = useState("");
   const bundledPath = bundledImage.trim();
-  const validPath = /^\/catalogue-[a-z0-9]+(?:-[a-z0-9]+)*\.webp$/.test(bundledPath);
+  const validPath = cataloguePhotoPath.test(bundledPath);
   useEffect(() => { setV({ ...empty, subcategory: subs[0] ?? "" }); setBundledImage(""); }, [cat]);
   async function add(e: FormEvent) {
     e.preventDefault();

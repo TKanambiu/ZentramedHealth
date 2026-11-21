@@ -164,20 +164,20 @@ function CategoryPage() {
                           <div className="mt-3 flex items-end justify-between gap-2">
                             <div>
                               <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                                Retail price
+                                {prod.price > 0 ? "Retail price" : "Pricing"}
                               </div>
                               <div className="font-display text-lg font-bold text-brand">
                                 {formatKES(prod.price)}
                               </div>
                             </div>
-                            {prod.reseller !== undefined && prod.reseller < prod.price && (
-                              <div className="rounded-full bg-accent/10 px-2.5 py-1 text-[11px] font-bold text-accent">
-                                Trade {formatKES(prod.reseller)}
+                            {prod.reseller !== undefined && prod.reseller > 0 && prod.reseller < prod.price && (
+                              <div className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-900">
+                                Offer {formatKES(prod.reseller)}
                               </div>
                             )}
                           </div>
                           <a
-                            href={whatsappLink(`Hi Zentramed Health, please send me a quote for: ${prod.name} (${formatKES(prod.price)}).`)}
+                            href={whatsappLink(`Hi Zentramed Health, please send me a quote for: ${prod.name}${prod.price > 0 ? ` (${formatKES(prod.price)})` : ""}.`)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="mt-4 inline-flex items-center justify-center gap-1.5 rounded-md bg-brand px-3 py-2 text-xs font-bold text-brand-foreground transition hover:bg-accent hover:text-accent-foreground"
