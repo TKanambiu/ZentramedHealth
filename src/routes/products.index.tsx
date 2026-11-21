@@ -31,7 +31,7 @@ function ProductsPage() {
   const [q, setQ] = useState(initialQ ?? "");
   useEffect(() => { if (initialQ !== undefined) setQ(initialQ); }, [initialQ]);
   const CATEGORIES = useLiveCategories();
-  const products = useMemo(() => CATEGORIES.flatMap((c) => c.subcategories.flatMap((s) => s.products.map((prod) => ({ ...prod, category: c.name, categorySlug: c.slug, categoryImage: c.image })))), [CATEGORIES]);
+  const products = useMemo(() => CATEGORIES.flatMap((c) => c.subcategories.flatMap((s) => s.products.map((prod) => ({ ...prod, category: c.name, categorySlug: c.slug })))), [CATEGORIES]);
   const filtered = q
     ? products.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()))
     : [];
@@ -39,7 +39,7 @@ function ProductsPage() {
   return (
     <div>
       <SiteHeader />
-      <PageHero title="Product Catalogue" subtitle="9 categories · 500+ items · sourced from certified global brands" />
+      <PageHero title="Product Catalogue" subtitle={`${CATEGORIES.length} categories · ${products.length} listed products`} />
       <section className="mx-auto max-w-7xl px-4 py-10">
         <div className="mb-8 flex items-center gap-3 rounded-xl border-2 border-brand bg-background px-4 py-3 shadow-md ring-4 ring-brand/10 focus-within:ring-brand/25">
           <Search className="h-5 w-5 text-brand" />
@@ -63,15 +63,15 @@ function ProductsPage() {
                   key={p.category + p.name}
                   to="/products/$slug"
                   params={{ slug: p.categorySlug }}
+                  search={{ q: p.name }}
                   className="flex items-center gap-3 rounded-md bg-background p-3 text-sm transition hover:shadow"
                 >
-                  <OptimizedImage
-                    src={p.image ?? p.categoryImage}
-                    sizes="48px"
-                    alt={p.name}
-                    loading="lazy"
-                    className={`h-12 w-12 shrink-0 rounded ${p.image ? "bg-white object-contain p-1" : "object-cover"}`}
-                  />
+                  {p.image ? (
+                    <OptimizedImage src={p.image} sizes="48px" alt="" loading="lazy"
+                      className="h-12 w-12 shrink-0 rounded bg-white object-contain p-1" />
+                  ) : (
+                    <span aria-hidden="true" className="grid h-12 w-12 shrink-0 place-items-center rounded bg-muted text-[9px] text-muted-foreground">No photo</span>
+                  )}
 
                   <div className="min-w-0">
                     <div className="truncate font-semibold text-foreground">{p.name}</div>

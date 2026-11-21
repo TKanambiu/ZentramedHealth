@@ -492,7 +492,7 @@ export const COMPANY = {
 };
 
 export function formatKES(n: number) {
-  return `KES ${n.toLocaleString("en-KE")}`;
+  return n > 0 ? `KES ${n.toLocaleString("en-KE")}` : "Ask for price";
 }
 
 export function getCategory(slug: string) {
