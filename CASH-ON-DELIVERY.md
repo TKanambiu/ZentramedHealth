@@ -1,0 +1,10 @@
+# Cash-on-delivery checkout pilot
+
+This change uses the existing catalogue database and staff console. The migration creates no live offers or delivery zones. The public Buy links appear only when a staff member enables a delivery zone and allocates confirmed inventory to a priced product with a photo and a written description.
+
+Before launch:
+1. Apply and test the migration on a staging database with the existing product and user-role schema. Test verified admin access, no read/write access to order data for other roles, guest order creation, same request retry, stock decrements under concurrent orders, and an order-price change between page load and confirmation.
+2. Confirm with operations who monitors checkout orders in the staff console, the delivery windows and exact delivery fees, and where orders can be fulfilled. Nairobi fee: KSh 300. Upcountry KSh 500–700 was provided as a range; do not enable zones without the exact price per destination. Confirm return and privacy information, order retention and guest-order abuse protection with the site owner before enabling publicly. No card data should be collected.
+3. Apply the migration to the authorized production project and verify the staff panel before making offers available. Build and deploy through the existing static site pipeline. Confirm product price, photo, description and available stock before allocating units. Confirm stock for dispatch manually; do not sell the same reserved stock elsewhere. Staff must reconcile the available quantity for cancelled or rejected orders deliberately.
+4. Run a controlled end-to-end test before enabling real products. Verify persisted order details, correct charges and confirmation, staff order visibility and the existing WhatsApp path. Do not submit Merchant Center listings until each Google landing page works, product availability and price match, the delivery/returns requirements are met, and the item is eligible.
+5. To pause ordering, clear enabled on all zones or set checkout allocation to zero. Do not remove existing orders during a rollback.
