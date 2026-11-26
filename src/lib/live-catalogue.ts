@@ -38,7 +38,7 @@ export function buildCategories(rows: DbProduct[] | undefined): Category[] {
           name,
           products: mine
             .filter((r) => r.subcategory === name)
-            .map((r) => ({ name: r.name, price: r.price, reseller: r.reseller ?? undefined, image: r.image_url ?? undefined })),
+            .map((r) => ({ id: r.id, name: r.name, price: r.price, reseller: r.reseller ?? undefined, image: r.image_url ?? undefined })),
         }))
         .filter((s) => s.products.length > 0),
     };
