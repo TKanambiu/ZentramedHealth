@@ -1,4 +1,5 @@
 export type Product = {
+  id?: string;
   name: string;
   /** Retail price in KES */
   price: number;
