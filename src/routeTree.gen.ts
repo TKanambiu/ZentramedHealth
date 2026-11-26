@@ -15,6 +15,8 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as FeaturedProductsRouteImport } from './routes/featured-products'
 import { Route as ServicesRouteImport } from './routes/services'
+import { Route as ItemProductIdRouteImport } from './routes/item.$productId'
+import { Route as OrderProductIdRouteImport } from './routes/order.$productId'
 import { Route as ProductsIndexRouteImport } from './routes/products.index'
 import { Route as ProductsSlugRouteImport } from './routes/products.$slug'
 
@@ -48,6 +50,16 @@ const ServicesRoute = ServicesRouteImport.update({
   path: '/services',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ItemProductIdRoute = ItemProductIdRouteImport.update({
+  id: '/item/$productId',
+  path: '/item/$productId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrderProductIdRoute = OrderProductIdRouteImport.update({
+  id: '/order/$productId',
+  path: '/order/$productId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProductsIndexRoute = ProductsIndexRouteImport.update({
   id: '/products/',
   path: '/products/',
@@ -66,6 +78,8 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/featured-products': typeof FeaturedProductsRoute
   '/services': typeof ServicesRoute
+  '/item/$productId': typeof ItemProductIdRoute
+  '/order/$productId': typeof OrderProductIdRoute
   '/products/$slug': typeof ProductsSlugRoute
   '/products/': typeof ProductsIndexRoute
 }
@@ -76,6 +90,8 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/featured-products': typeof FeaturedProductsRoute
   '/services': typeof ServicesRoute
+  '/item/$productId': typeof ItemProductIdRoute
+  '/order/$productId': typeof OrderProductIdRoute
   '/products/$slug': typeof ProductsSlugRoute
   '/products': typeof ProductsIndexRoute
 }
@@ -87,6 +103,8 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/featured-products': typeof FeaturedProductsRoute
   '/services': typeof ServicesRoute
+  '/item/$productId': typeof ItemProductIdRoute
+  '/order/$productId': typeof OrderProductIdRoute
   '/products/$slug': typeof ProductsSlugRoute
   '/products/': typeof ProductsIndexRoute
 }
@@ -99,6 +117,8 @@ export interface FileRouteTypes {
     | '/contact'
     | '/featured-products'
     | '/services'
+    | '/item/$productId'
+    | '/order/$productId'
     | '/products/$slug'
     | '/products/'
   fileRoutesByTo: FileRoutesByTo
@@ -109,6 +129,8 @@ export interface FileRouteTypes {
     | '/contact'
     | '/featured-products'
     | '/services'
+    | '/item/$productId'
+    | '/order/$productId'
     | '/products/$slug'
     | '/products'
   id:
@@ -119,6 +141,8 @@ export interface FileRouteTypes {
     | '/contact'
     | '/featured-products'
     | '/services'
+    | '/item/$productId'
+    | '/order/$productId'
     | '/products/$slug'
     | '/products/'
   fileRoutesById: FileRoutesById
@@ -130,6 +154,8 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   FeaturedProductsRoute: typeof FeaturedProductsRoute
   ServicesRoute: typeof ServicesRoute
+  ItemProductIdRoute: typeof ItemProductIdRoute
+  OrderProductIdRoute: typeof OrderProductIdRoute
   ProductsSlugRoute: typeof ProductsSlugRoute
   ProductsIndexRoute: typeof ProductsIndexRoute
 }
@@ -178,6 +204,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ServicesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/item/$productId': {
+      id: '/item/$productId'
+      path: '/item/$productId'
+      fullPath: '/item/$productId'
+      preLoaderRoute: typeof ItemProductIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/order/$productId': {
+      id: '/order/$productId'
+      path: '/order/$productId'
+      fullPath: '/order/$productId'
+      preLoaderRoute: typeof OrderProductIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/products/': {
       id: '/products/'
       path: '/products'
@@ -202,6 +242,8 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   FeaturedProductsRoute: FeaturedProductsRoute,
   ServicesRoute: ServicesRoute,
+  ItemProductIdRoute: ItemProductIdRoute,
+  OrderProductIdRoute: OrderProductIdRoute,
   ProductsSlugRoute: ProductsSlugRoute,
   ProductsIndexRoute: ProductsIndexRoute,
 }
