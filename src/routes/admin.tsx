@@ -1,3 +1,4 @@
+import { CodAdmin } from "@/components/cod-admin";
 import { OptimizedImage } from "@/components/optimized-image";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
@@ -161,6 +162,7 @@ function Manager({ email }: { email: string }) {
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-admin-border bg-admin-surface p-4">
         <p className="text-sm">Signed in as <b>{email}</b></p><SignOutButton />
       </div>
+      <CodAdmin products={rows} />
       {isLoading ? <Spinner /> : rows.length === 0 ? (
         <Card><p className="text-sm">No products saved yet. Load the current website catalogue so you can start editing.</p>
           <Button onClick={importCatalogue} disabled={busy} className="w-full bg-admin-foreground text-admin-background hover:bg-admin-accent"><Database /> Load current catalogue</Button>{msg && <p className="text-sm">{msg}</p>}</Card>

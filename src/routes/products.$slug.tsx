@@ -6,6 +6,8 @@ import { whatsappLink } from "@/lib/whatsapp";
 import { getCategory, COMPANY, CATEGORIES, formatKES, type Category } from "@/data/catalogue";
 import { ChevronRight, MessageCircle, Search as SearchIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { codQueryKey, fetchCodCatalogue } from "@/lib/cod";
 import { useLiveCategories } from "@/lib/live-catalogue";
 
 export const Route = createFileRoute("/products/$slug")({
@@ -45,6 +47,8 @@ export const Route = createFileRoute("/products/$slug")({
 function CategoryPage() {
   const { category: staticCategory } = Route.useLoaderData() as { category: Category };
   const live = useLiveCategories();
+  const { data: checkout } = useQuery({ queryKey: codQueryKey, queryFn: fetchCodCatalogue, retry: false, staleTime: 30_000 });
+  const checkoutIds = new Set(checkout?.zones.length ? checkout.items.filter((item) => item.available > 0).map(({ id }) => id) : []);
   const category = live.find((c) => c.slug === staticCategory.slug) ?? staticCategory;
   const { q: initialQ } = Route.useSearch();
   const [q, setQ] = useState(initialQ ?? "");
@@ -177,6 +181,12 @@ function CategoryPage() {
                               </div>
                             )}
                           </div>
+                          {prod.id && checkoutIds.has(prod.id) && (
+                            <a href={`/item/${encodeURIComponent(prod.id)}`}
+                              className="mt-4 inline-flex justify-center rounded-md bg-brand px-3 py-2 text-xs font-bold text-brand-foreground hover:bg-brand/90">
+                              View product and buy
+                            </a>
+                          )}
                           <a
                             href={whatsappLink(`Hi Zentramed Health, please send me a quote for: ${prod.name}${prod.price > 0 ? ` (${formatKES(prod.price)})` : ""}.`)}
                             target="_blank"
